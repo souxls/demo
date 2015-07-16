@@ -43,8 +43,7 @@ create_chroot() {   ###
     mount -t devpts devpts ${chroot_path}/dev/pts
  
 # copy command and lib
-    lib32=$(ldd ${cmd_list} | awk '/\/lib/{ print $1 }')
-    lib64=$(ldd ${cmd_list} | awk '/\/lib/{ print $3 }')
+    lib=$(ldd ${cmd_list} | awk '/\/lib/{if ($1 ~ "/lib") {print $1} else {print $3} }')
  
     for cmd in ${cmd_list}
     do
@@ -52,13 +51,9 @@ create_chroot() {   ###
     done
  
 # x86_64 is lib64,i386 is lib
-    for lib_32 in $lib32
+    for lib_tmp in $lib
     do
-       cp -f $lib_32 $chroot_path/lib/
-    done
-    for lib_64 in $lib64
-    do
-       cp -f $lib_64 $chroot_path/lib64/
+       cp -f ${lib_tmp} $chroot_path/lib64/
     done
  
 ##support vi
@@ -94,6 +89,7 @@ alias ls='ls --color=auto'
 alias mv='mv -i'
 alias rm='rm -i'
 alias vi='vim'" >>${chroot_path}/home/${new_user}/.bashrc
+    sed -i 's#/usr/bin/clear#/bin/clear' ${chroot_path}/home/${new_user}/.bash_logout
     change_sshd ${new_user};[[ "$?" -eq "0" ]] && echo "user '${new_user}' to add success"
  
 }
@@ -131,15 +127,11 @@ command_add() {
     command=$1
     username=$2
     cp $command ${chroot_path}/bin/
-    lib32=$(ldd $command | awk '/\/lib/{ print $1}')
-    lib64=$(ldd $command | awk '/\/lib/{ print $3}')
-    for lib_32 in lib32
+    lib=$(ldd $command | awk '/\/lib/{if ($1 ~ "/lib") {print $1} else {print $3} }')
+
+    for lib_tmp in lib
     do
-        cp -f ${lib_32} ${chroot_path}/lib/ 
-    done
-    for lib_64 in lib64
-    do
-        cp -f ${lib_64} ${chroot_path}/lib64/ 
+        cp -f ${lib_tmp} ${chroot_path}/lib64/ 
     done 
     [[ "x$2" -ne "x" ]] && chown $username ${chroot_path}/bin/$(basename $commnad)
     chmod 700 ${chroot_path}/bin/$(basename $commnad) 
@@ -148,11 +140,12 @@ command_add() {
 }
 
 #main 
-
+#selinux disable
 chroot_path="/home/chroot"
 sshd_conf="/etc/ssh/sshd_config"
-cmd_list=$(whereis bash ls cp mkdir mv rm cat less vi tail head touch grep awk sed seq sort uniq find netstat free df wc top| awk '{ORS=" ";print $2}')
-[[ "$#" -eq "0" ]] && Usage
+cmd_list=$(whereis bash ls cp mkdir mv rm cat less vi tail head touch grep awk sed seq \
+sort uniq find netstat free df wc top clear| awk '{ORS=" ";print $2}')
+[[ "$#" -eq "1" ]] && Usage
 while getopts a:d:c:h option
 do
     case $option in
@@ -173,7 +166,7 @@ do
                 command_add $i $username
             done
             ;;
-       ?)
+       *)
             Usage
             ;;
     esac
