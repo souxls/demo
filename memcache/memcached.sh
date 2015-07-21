@@ -8,6 +8,7 @@
 . /etc/rc.d/init.d/functions
 
 #
+
 MEM_ID=$(basename $0)
 MEM_ACTION=$1
 PID=/var/run/${MEM_ID}.pid
@@ -18,7 +19,7 @@ MEM_PATH=$(readlink $0)
 MEM_CONF="$(dirname ${MEM_PATH})/memcached.conf"
 MEM_APP=("$(sed -n 's/\[\(.*\)\]/\1/p' ${MEM_CONF}|grep -v 'global')")
 
-usage () {
+usage() {
     echo "Usage: [$(echo ${MEM_APP[*]}| tr " " "|")] [start|stop|status|restart|reload|condrestart]" 
     exit 1
 }
@@ -43,7 +44,7 @@ RETVAL=0
 prog="${MEM_ID}"
 
 
-start () {
+start() {
        echo -n $"Starting memcached $prog: "
         if [ ! -L /tmp/${MEM_ID} ];
         then
@@ -56,7 +57,7 @@ start () {
        echo
        [ $RETVAL -eq 0 ] && touch $LOCK
 }
-stop () {
+stop() {
        echo -n $"Stopping memcached $prog: "
 #       KPID=$(ps aux |grep memcached|grep ${MEM_PORT}1|awk '{print $2}')
 #       if [ -n $KPID ];then
@@ -72,12 +73,12 @@ stop () {
        fi
 }
 
-restart () {
+restart() {
        stop
        start
 }
 
-action () {
+action() {
      case "${MEM_ACTION}" in
         start)
            start 
